@@ -1,0 +1,120 @@
+services:
+  zenoh_base:
+    image: jazzy:zenoh 
+    volumes:
+      - /dev/shm:/dev/shm
+    stdin_open: true
+    tty: true
+    network_mode: host
+    environment:
+      - ROS_DOMAIN_ID=10
+      - RMW_IMPLEMENTATION=rmw_zenoh_cpp
+
+  ouster_base:
+    image: ouster:zenoh 
+    stdin_open: true
+    tty: true
+    network_mode: host
+    environment:
+      - ROS_DOMAIN_ID=10
+      - RMW_IMPLEMENTATION=rmw_zenoh_cpp
+
+  viz_nvidia_base:
+    image: jazzy:zenoh
+    volumes:
+      - /dev/dri:/dev/dri
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - $HOME/.Xauthority:/root/.Xauthority:ro
+      - ./ouster-ros/ouster-ros/config/viz.rviz:/tmp/viz.rviz
+    environment:
+      - ROS_DOMAIN_ID=10
+      - RMW_IMPLEMENTATION=rmw_zenoh_cpp
+      - DISPLAY=${DISPLAY}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    ipc: host
+    pid: host
+    network_mode: host
+    tty: true
+    stdin_open: true
+    privileged: true
+    deploy:
+      resources:
+        reservations:
+           devices:
+             - driver: nvidia
+               count: 1
+               capabilities: [gpu]
+
+  viz_base:
+    image: jazzy:zenoh
+    volumes:
+      - /dev/dri:/dev/dri
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - $HOME/.Xauthority:/root/.Xauthority:ro
+      - ./ouster-ros/ouster-ros/config/viz.rviz:/tmp/viz.rviz
+    environment:
+      - ROS_DOMAIN_ID=10
+      - RMW_IMPLEMENTATION=rmw_zenoh_cpp
+    ipc: host
+    pid: host
+    network_mode: host
+    tty: true
+    stdin_open: true
+    privileged: true
+
+  ouster_driver:
+    extends:
+      service: ouster_base
+    container_name: ouster_driver
+    command: >
+      ros2 launch ouster_ros sensor.launch.xml sensor_hostname:=11.11.11.10 lidar_mode:=1024x20 timestamp_mode:=TIME_FROM_ROS_TIME viz:=false use_system_default_qos:=true
+
+  router:
+    extends:
+      service: zenoh_base
+    container_name: router
+    command: ros2 run rmw_zenoh_cpp rmw_zenohd
+
+  router_listener:
+    extends:
+      service: zenoh_base
+    container_name: router_listener
+    volumes:
+      - ./routerconfig.json5:/tmp/routerconfig.json5
+    environment:
+      - ZENOH_ROUTER_CONFIG_URI=/tmp/routerconfig.json5
+    command: ros2 run rmw_zenoh_cpp rmw_zenohd
+
+  debug:
+    extends:
+      service: zenoh_base
+    volumes:
+      - ./:/mydata
+    container_name: debug
+    command: bash
+
+  talker:
+    extends:
+      service: zenoh_base
+    container_name: talker
+    command: ros2 run demo_nodes_cpp talker
+
+  listener:
+    extends:
+      service: zenoh_base
+    container_name: listener
+    command: ros2 run demo_nodes_cpp listener
+
+  viz_nvidia:
+    extends:
+      service: viz_nvidia_base
+    container_name: viz_nvidia
+    command: ros2 run rviz2 rviz2 -d /tmp/viz.rviz
+
+  viz:
+    extends:
+      service: viz_base
+    container_name: viz_nvidia
+    command: ros2 run rviz2 rviz2 -d /tmp/viz.rviz
+

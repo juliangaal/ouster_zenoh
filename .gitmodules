@@ -1,0 +1,6 @@
+[submodule "rmw_zenoh"]
+	path = rmw_zenoh
+	url = git@github.com:ros2/rmw_zenoh.git
+[submodule "ouster-ros"]
+	path = ouster-ros
+	url = git@github.com:ouster-lidar/ouster-ros.git

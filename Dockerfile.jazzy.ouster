@@ -1,0 +1,21 @@
+FROM jazzy:zenoh
+
+ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
+WORKDIR $ROS_WS
+
+COPY ouster-ros src/ouster-ros
+
+RUN apt-get update &&\
+    rosdep update &&\
+    rosdep install --from-paths src --ignore-src -y &&\
+    rm -rf /var/lib/apt/lists/*
+
+SHELL ["/bin/bash", "-c"]
+RUN source install/setup.bash &&\
+    colcon build \
+    --event-handlers console_direct+ \
+    --parallel-workers $(nproc) \
+    --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_VIZ=OFF -DBUILD_OSF=OFF -DBUILD_EXAMPLES=OFF
+
+COPY entrypoint.ouster.sh entrypoint.sh 
+ENTRYPOINT ["./entrypoint.sh"]

@@ -1,0 +1,23 @@
+{
+  connect: {
+    endpoints: [
+      "tcp/11.11.11.2:7447"
+    ],
+  },
+  timestamping: {
+    enabled: {
+      router: true,
+      peer: true,
+      client: true
+    },
+    drop_future_timestamp: false,
+  },
+  transport: {
+    link: {
+      rx: {
+        buffer_size: 16777216,
+        max_message_size: 1073741824,
+      },
+    },
+  }
+}
